@@ -7,96 +7,10 @@ library(GenomicAlignments)
 library(GenomicRanges)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(org.Hs.eg.db)
+library(plyr)
 library(dplyr)
 
-# Multiple plot function
-#
-# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
-# - cols:   Number of columns in layout
-# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
-#
-# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
-# then plot 1 will go in the upper left, 2 will go in the upper right, and
-# 3 will go all the way across the bottom.
-#
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  library(grid)
-  
-  # Make a list from the ... arguments and plotlist
-  plots <- c(list(...), plotlist)
-  
-  numPlots = length(plots)
-  
-  # If layout is NULL, then use 'cols' to determine layout
-  if (is.null(layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                     ncol = cols, nrow = ceiling(numPlots/cols))
-  }
-  
-  if (numPlots==1) {
-    print(plots[[1]])
-    
-  } else {
-    # Set up the page
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    
-    # Make each plot, in the correct location
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
-    }
-  }
-}
-
-txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-gene_symbol<-as.data.frame(org.Hs.egSYMBOL)
-data(genesymbol, package = "biovizBase")
-
-loadCGCsymbols<-function(){
-  cgc<-read.delim('cancer_gene_census_2012_0315', sep='\t', as.is=T)
-  gene_alias<-as.data.frame(org.Hs.egALIAS2EG)
-  gene_alias_symbol<-merge(gene_alias, gene_symbol)
-  alias<-setdiff(cgc$Symbol, gene_symbol$symbol)
-  alias_idx<-gene_alias_symbol$alias_symbol %in% alias
-  #gene_idx<-gene_alias_symbol$gene_id %in% cgc$GeneID
-  #cgc_symbols<-c(cgc$Symbol, gene_alias_symbol[gene_idx&alias_idx,]$symbol)
-  c(cgc$Symbol, gene_alias_symbol[alias_idx,]$symbol)
-}
-
-cgc_symbols<-loadCGCsymbols()
-
-is.empty.or<-function(x, v){
-  if(is.na(x)|is.null(x)|length(x)==0){
-    v
-  }else{
-    x
-  }
-}
-
-plotReads<-function(reads, which){
-  if(length(reads)==0){
-    NULL
-  }else{
-    autoplot(reads, which=which)
-  }
-}
-
-plotArc<-function(arc){
-  if(length(arc)==0){
-    message("empty")
-    NULL
-  }else{
-    message(length(arc))
-    ggbio() + geom_arch(data=arc, aes(color = type, height = junction_reads, size = mapq), alpha = 0.5)
-  }
-}
+source('prepare.R')
 
 shinyServer(function(input, output) {
   
@@ -205,46 +119,41 @@ shinyServer(function(input, output) {
       datatable(filter = 'top', #selection = 'single',
                 extensions = 'ColVis', options = list(dom = 'C<"clear">lfrtip'))
   })
-  
-#   circ_arc<-reactive({
-#     selected<-selected_row()
-#     norm_mapq<-median(mcols(norm_bam_circ_region_junction())$mapq)
-#     norm_mapq<-is.empty.or(norm_mapq, 0)
-#     norm_junction_reads<-is.empty.or(selected$Normal.junction_reads, 0)
-#     tumor_mapq<-median(mcols(tumor_bam_circ_region_junction())$mapq)
-#     tumor_mapq<-is.empty.or(tumor_mapq, 0)
-#     tumor_junction_reads<-is.empty.or(selected$Tumor.junction_reads, 0)
-#     n_selected<-length(selected$chr)
-#     
-#     GRanges(seqnames = rep(selected$chr, 2),
-#             IRanges(start = rep(selected$circRNA_start, 2),
-#                     end = rep(selected$circRNA_end, 2) ),
-#             strand = rep("*", 2*n_selected),
-#             mapq = rep(c(norm_mapq, tumor_mapq), n_selected),
-#             junction_reads = rep(c(norm_junction_reads, tumor_junction_reads), n_selected),
-#             type = rep(c("Normal", "Tumor"), each=n_selected)
-#             )
-#   })
 
   circ_arc<-reactive({
     selected<-selected_row()
-    mcols(norm_bam_circ_region_junction()) %>%
-      select(qname, mapq) ->
-      norm_mapq
+    
+    norm_qnames<-with(
+      selected, 
+      splitQnames(circRNA_ID, Normal.junction_reads_ID, type='Normal')
+      )
+    
+    tumor_qnames<-with(
+      selected, 
+      splitQnames(circRNA_ID, Tumor.junction_reads_ID, type='Tumor')
+    )
+    
+    circRNA_ID_qnames<-rbind(norm_qnames, tumor_qnames)
+    
+    norm_mapq <- norm_bam_circ_region_junction() %>% getQnameMapq
+    tumor_mapq <- tumor_bam_circ_region_junction() %>% getQnameMapq
+    
+    qname_mapq<-rbind(norm_mapq, tumor_mapq)
+    circRNA_ID_mapq<-merge(circRNA_ID_qnames, qname_mapq, by='qname') %>%
+      group_by(circRNA_ID, type) %>%
+      summarise(mapq=mean(mapq,na.rm=T))
     
     norm_tumor_rbind() %>%
-      filter(circRNA_ID %in% selected$circRNA_ID) ->
+      filter(circRNA_ID %in% selected$circRNA_ID) %>%
+      left_join(circRNA_ID_mapq, by=c('circRNA_ID', 'type')) ->
       selected_norm_tumor
-    
-    selected_norm_tumor %>%
-      select(circRNA_ID, type, junction_reads_ID)
     
     with(selected_norm_tumor,
          GRanges(seqnames = chr,
             IRanges(start = circRNA_start,
                     end = circRNA_end),
             strand = "*",
-            mapq = 1,
+            mapq = mapq,
             junction_reads = X.junction_reads,
             junction_ratio = junction_reads_ratio,
             type = type,
@@ -285,12 +194,6 @@ shinyServer(function(input, output) {
     input$norm_tumor_ciri_row_last_clicked
   })
   
-  # output$track<-renderPlot({
-  #   selected<-selected_row()
-  #   which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
-  #   autoplot(norm_bam_circ_region(), which=which)
-  #   })
-
   norm_tumor_rbind<-reactive({
     norm_ciri<-norm_ciri()
     norm_ciri$type<-"Normal"
@@ -358,7 +261,7 @@ shinyServer(function(input, output) {
     selected<-selected_row()
     which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
     #which_gene<-genes(txdb, vals=list(gene_id=as.numeric(selected$gene_id)))
-    if(is.na(selected$symbol)){
+    if(is.empty(selected$symbol)){
       which_gene<-which
     }else{
       which_gene<-genesymbol[selected$symbol]
@@ -366,31 +269,31 @@ shinyServer(function(input, output) {
     
     message(selected$gene_id, ":", selected$symbol,":",length(which_gene))
     
-#     norm_junction_reads<-plotReads(norm_bam_circ_region_junction(), which=which)
-#     norm_reads<-plotReads(norm_bam_circ_region(), which=which)
-#     
-#     tumor_junction_reads<-plotReads(tumor_bam_circ_region_junction(), which=which)
-#     tumor_reads<-plotReads(tumor_bam_circ_region(), which=which)
-#     
-#     norm_bam_gene_cov <- ggplot() + stat_coverage(norm_bam(), which=which_gene, method='raw')
-#     tumor_bam_gene_cov <- ggplot() + stat_coverage(tumor_bam(), which=which_gene, method='raw')
+    norm_junction_reads<-plotReads(norm_bam_circ_region_junction(), which=which)
+    norm_reads<-plotReads(norm_bam_circ_region(), which=which)
+    
+    tumor_junction_reads<-plotReads(tumor_bam_circ_region_junction(), which=which)
+    tumor_reads<-plotReads(tumor_bam_circ_region(), which=which)
+    
+    norm_bam_gene_cov <- ggplot() + stat_coverage(norm_bam(), which=which_gene, method='raw')
+    tumor_bam_gene_cov <- ggplot() + stat_coverage(tumor_bam(), which=which_gene, method='raw')
     # norm_bam_circ_region_junction_reads_cov <- ggplot() + stat_coverage(granges(norm_bam_circ_region_junction_reads))
     
     #gene_model <- ggbio() + geom_alignment(data=txdb, which = which_gene, stat = "reduce")
-    #transcripts <- ggbio() + geom_alignment(data=txdb, which = which_gene )
+    transcripts <- ggbio() + geom_alignment(data=txdb, which = which_gene )
     
     #arc <- ggplot(circ_arc()) + geom_arch(aes(color = type, height = junction_reads, size = mapq), alpha = 0.5)
     arc<-plotArc(circ_arc())
     track_list<-list(
-      arc=arc
+      arc=arc,
       #gene_model = gene_model,
-#       transcripts=transcripts,
-#       norm=norm_reads,
-#       norm_junction=norm_junction_reads,
-#       norm_coverage=norm_bam_gene_cov,
-#       tumor=tumor_reads,
-#       tumor_junction=tumor_junction_reads,
-#       tumor_coverage=norm_bam_gene_cov
+      transcripts=transcripts,
+      norm=norm_reads,
+      norm_junction=norm_junction_reads,
+      norm_coverage=norm_bam_gene_cov,
+      tumor=tumor_reads,
+      tumor_junction=tumor_junction_reads,
+      tumor_coverage=norm_bam_gene_cov
     )
           
     track_list<-track_list[!sapply(track_list, is.null)]
