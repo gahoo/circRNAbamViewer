@@ -67,5 +67,15 @@ shinyUI(fluidPage(
                  class = 'btn-info btn-xs',
                  checkboxInput('tumor_junction_only', 'junction only', T),
                  DT::dataTableOutput('tumor_reads_tb')
+  ),
+  collapsibleDiv(id='gene_reads', collapse = T,
+                 label = 'Gene region reads',
+                 class = 'btn-info btn-xs',
+                 DT::dataTableOutput('gene_reads_tb')
+  ),
+  collapsibleDiv(id='reads_plot', collapse = T,
+                 label = 'reads viz',
+                 class = 'btn-info btn-xs',
+                 plotOutput('reads_track', height='800px')
   )
 ))
