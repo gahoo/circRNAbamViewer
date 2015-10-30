@@ -77,5 +77,10 @@ shinyUI(fluidPage(
                  label = 'reads viz',
                  class = 'btn-info btn-xs',
                  plotOutput('reads_track', height='800px')
+  ),
+  collapsibleDiv(id='go_to_region', collapse = T,
+                 label = 'Bam Navigation',
+                 class = 'btn-info btn-xs',
+                 DT::dataTableOutput('nav_reads_tb')
   )
 ))
