@@ -118,6 +118,19 @@ plotArc<-function(arc){
     NULL
   }else{
     message(length(arc))
-    ggbio() + geom_arch(data=arc, aes(color = type, height = junction_reads, size = mapq), alpha = 0.5)
+    ggbio() + 
+      geom_arch(data=arc, 
+                aes(color = type, 
+                    height = junction_reads, 
+                    size = mapq),
+                alpha = 0.5)
   }
+}
+
+plotCoverage<-function(bam, which, cov_method){
+  ggplot() + 
+    stat_coverage(bam, 
+                  which=which, 
+                  method=cov_method) +
+    ylab(cov_method)
 }
