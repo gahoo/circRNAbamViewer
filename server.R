@@ -23,7 +23,7 @@ shinyServer(function(input, output) {
   })
   
   norm_bam_circ_region<-reactive({
-    selected<-selected_row()
+    selected<-ciri_selected_row()
     what <- c("qname", "flag", "mapq")
     which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
     # if(input$byGene){
@@ -34,7 +34,7 @@ shinyServer(function(input, output) {
   })
   
   norm_bam_circ_region_junction<-reactive({
-    selected<-selected_row()
+    selected<-ciri_selected_row()
     bam_region<-norm_bam_circ_region()
     junction_reads_ID<-unlist(strsplit(selected$Normal.junction_reads_ID, split=','))
     idx<-mcols(bam_region)$qname %in% junction_reads_ID
@@ -47,6 +47,7 @@ shinyServer(function(input, output) {
   })
   
   output$norm_reads_tb<-DT::renderDataTable({
+    selected<-ciri_selected_row()
     if(input$norm_junction_only){
       reads<-norm_bam_circ_region_junction()
     }else{
@@ -54,6 +55,10 @@ shinyServer(function(input, output) {
     }
     reads %>%
       as.data.frame %>%
+      mutate(overlap_start = start <= selected$circRNA_start &
+               end >= selected$circRNA_start,
+             overlap_end = start <= selected$circRNA_end &
+               end >= selected$circRNA_end) %>%
       datatable(filter = 'top')
   })
   
@@ -67,7 +72,7 @@ shinyServer(function(input, output) {
   })
   
   tumor_bam_circ_region<-reactive({
-    selected<-selected_row()
+    selected<-ciri_selected_row()
     what <- c("qname", "flag", "mapq")
     which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
     # if(input$byGene){
@@ -78,7 +83,7 @@ shinyServer(function(input, output) {
   })
   
   tumor_bam_circ_region_junction<-reactive({
-    selected<-selected_row()
+    selected<-ciri_selected_row()
     bam_region<-tumor_bam_circ_region()
     junction_reads_ID<-unlist(strsplit(selected$Tumor.junction_reads_ID, split=','))
     idx<-mcols(bam_region)$qname %in% junction_reads_ID
@@ -110,16 +115,17 @@ shinyServer(function(input, output) {
       mutate(
         transcripts = gene_id,
         gene_id =  gsub(':.*$','',gene_id),
+        gene_id =  gsub('^n/a$','',gene_id),
         length = circRNA_end - circRNA_start,
         log2RatioRatio = log2(Tumor.junction_reads_ratio/Normal.junction_reads_ratio),
-        #log2RatioRatio = ifelse(is.infinite(log2RatioRatio), NA, log2RatioRatio),
+        log2RatioRatio = ifelse(is.infinite(log2RatioRatio), NA, log2RatioRatio),
         inNormal = !is.na(Normal.junction_reads),
         inTumor = !is.na(Tumor.junction_reads),
         inBoth = inNormal & inTumor
       ) %>%
       left_join(gene_symbol, by='gene_id') %>%
-      mutate(inCGC = symbol %in% cgc_symbols) %>%
-      filter(inCGC == T)
+      mutate(inCGC = symbol %in% cgc_symbols) #%>%
+      #filter(inCGC == T)
       #filter(circRNA_start>=1623888 & circRNA_end<=3764177)
   })
   
@@ -131,7 +137,7 @@ shinyServer(function(input, output) {
   })
 
   circ_arc<-reactive({
-    selected<-selected_row()
+    selected<-ciri_selected_row()
     
     norm_qnames<-with(
       selected, 
@@ -172,7 +178,7 @@ shinyServer(function(input, output) {
   })
 
   norm_bam_circ_arc<-reactive({
-    selected<-selected_row()
+    selected<-ciri_selected_row()
     mapq<-median(mcols(norm_bam_circ_region_junction())$mapq)
     if(is.na(mapq)){
       mapq<-0.5
@@ -185,7 +191,7 @@ shinyServer(function(input, output) {
             junction_reads = selected$Normal.junction_reads)
   })
   
-  selected_row<-reactive({
+  ciri_selected_row<-reactive({
     #row_id<-input$norm_tumor_ciri_row_last_clicked
     row_id<-input$norm_tumor_ciri_rows_selected
     if(is.null(row_id)){
@@ -196,7 +202,7 @@ shinyServer(function(input, output) {
   
   output$helper<-renderText({
     message(input$norm_tumor_ciri_row_last_clicked)
-    selected<-selected_row()
+    selected<-ciri_selected_row()
     str(selected)
     message(length(norm_bam_circ_region()))
     #str(circ_arc())
@@ -268,7 +274,7 @@ shinyServer(function(input, output) {
   })
   
   output$track<-renderPlot({
-    selected<-selected_row()
+    selected<-ciri_selected_row()
     which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
     #which_gene<-genes(txdb, vals=list(gene_id=as.numeric(selected$gene_id)))
     region_symbols<-rmNAnullUniq(selected$symbol)
