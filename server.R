@@ -135,27 +135,31 @@ shinyServer(function(input, output) {
       datatable(filter = 'top', #selection = 'single',
                 extensions = 'ColVis', options = list(dom = 'C<"clear">lfrtip'))
   })
-
-  circ_arc<-reactive({
+  
+  circRNA_ID_qnames<-reactive({
     selected<-ciri_selected_row()
     
     norm_qnames<-with(
       selected, 
       splitQnames(circRNA_ID, Normal.junction_reads_ID, type='Normal')
-      )
+    )
     
     tumor_qnames<-with(
       selected, 
       splitQnames(circRNA_ID, Tumor.junction_reads_ID, type='Tumor')
     )
     
-    circRNA_ID_qnames<-rbind(norm_qnames, tumor_qnames)
+    rbind(norm_qnames, tumor_qnames)
+  })
+
+  circ_arc<-reactive({
+    selected<-ciri_selected_row()
     
     norm_mapq <- norm_bam_circ_region_junction() %>% getQnameMapq
     tumor_mapq <- tumor_bam_circ_region_junction() %>% getQnameMapq
     
     qname_mapq<-rbind(norm_mapq, tumor_mapq)
-    circRNA_ID_mapq<-merge(circRNA_ID_qnames, qname_mapq, by='qname') %>%
+    circRNA_ID_mapq<-merge(circRNA_ID_qnames(), qname_mapq, by='qname') %>%
       group_by(circRNA_ID, type) %>%
       summarise(mapq=mean(mapq,na.rm=T))
     
@@ -175,20 +179,6 @@ shinyServer(function(input, output) {
             type = type,
             element_type = circRNA_type)
          )
-  })
-
-  norm_bam_circ_arc<-reactive({
-    selected<-ciri_selected_row()
-    mapq<-median(mcols(norm_bam_circ_region_junction())$mapq)
-    if(is.na(mapq)){
-      mapq<-0.5
-    }
-    GRanges(seqnames = selected$chr,
-            IRanges(start = selected$circRNA_start,
-                    end = selected$circRNA_end),
-            strand = "*",
-            mapq = mapq,
-            junction_reads = selected$Normal.junction_reads)
   })
   
   ciri_selected_row<-reactive({
@@ -299,8 +289,8 @@ shinyServer(function(input, output) {
     tumor_junction_reads<-plotReads(tumor_bam_circ_region_junction(), which=which)
     tumor_reads<-plotReads(tumor_bam_circ_region(), which=which)
     
-    norm_bam_gene_cov <- ggplot() + stat_coverage(norm_bam(), which=which_gene, method=cov_method) + ylab(cov_method)
-    tumor_bam_gene_cov <- ggplot() + stat_coverage(tumor_bam(), which=which_gene, method=cov_method) + ylab(cov_method)
+    norm_bam_gene_cov <- plotCoverage(norm_bam(), which=which_gene, cov_method=cov_method)
+    tumor_bam_gene_cov <- plotCoverage(tumor_bam(), which=which_gene, cov_method=cov_method)
     # norm_bam_circ_region_junction_reads_cov <- ggplot() + stat_coverage(granges(norm_bam_circ_region_junction_reads))
     
     #gene_model <- ggbio() + geom_alignment(data=txdb, which = which_gene, stat = "reduce")
