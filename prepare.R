@@ -80,19 +80,28 @@ loadCGCsymbols<-function(){
 cgc_symbols<-loadCGCsymbols()
 
 is.empty.or<-function(x, v){
-  if(length(x)==0|is.na(x)|is.null(x)){
+  if(length(x)==0){
     v
+  }else if(length(x)==1){
+    ifelse(is.na(x)|is.null(x), v, x)
   }else{
     x
   }
 }
 
 is.empty<-function(x){
-  if(length(x)==0|is.na(x)|is.null(x)){
+  if(length(x)==0){
     TRUE
+  }else if(length(x)==1){
+    is.na(x)|is.null(x)
   }else{
     FALSE
   }
+  
+}
+
+rmNAnullUniq<-function(x){
+  unique(x[!is.na(x) & !is.null(x)])
 }
 
 plotReads<-function(reads, which){
