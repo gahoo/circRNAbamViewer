@@ -55,7 +55,7 @@ splitQnames<-function(circRNA_IDs, qnames, ...){
       data.frame(qname=qname, ..., stringsAsFactors = F)
     }) %>%
     "names<-"(circRNA_IDs) %>%
-    ldply(.id='circRNA_ID') %>%
+    plyr::ldply(.id='circRNA_ID') %>%
     mutate(circRNA_ID = as.character(circRNA_ID) )
 }
 
