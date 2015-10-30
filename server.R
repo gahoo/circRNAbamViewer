@@ -47,8 +47,13 @@ shinyServer(function(input, output) {
       datatable(filter = 'top')
   })
   
-  output$norm_junction_reads_tb<-DT::renderDataTable({
-    norm_bam_circ_region_junction() %>%
+  output$norm_reads_tb<-DT::renderDataTable({
+    if(input$norm_junction_only){
+      reads<-norm_bam_circ_region_junction()
+    }else{
+      reads<-norm_bam_circ_region()
+    }
+    reads %>%
       as.data.frame %>%
       datatable(filter = 'top')
   })
@@ -86,8 +91,13 @@ shinyServer(function(input, output) {
       datatable(filter = 'top')
   })
   
-  output$tumor_junction_reads_tb<-DT::renderDataTable({
-    tumor_bam_circ_region_junction() %>%
+  output$tumor_reads_tb<-DT::renderDataTable({
+    if(input$tumor_junction_only){
+      reads<-tumor_bam_circ_region_junction()
+    }else{
+      reads<-tumor_bam_circ_region()
+    }
+    reads %>%
       as.data.frame %>%
       datatable(filter = 'top')
   })
@@ -103,13 +113,14 @@ shinyServer(function(input, output) {
         gene_id =  gsub(':.*$','',gene_id),
         length = circRNA_end - circRNA_start,
         log2RatioRatio = log2(Tumor.junction_reads_ratio/Normal.junction_reads_ratio),
+        log2RatioRatio = ifelse(is.infinite(log2RatioRatio), NA, log2RatioRatio),
         inNormal = !is.na(Normal.junction_reads),
         inTumor = !is.na(Tumor.junction_reads),
         inBoth = inNormal & inTumor
       ) %>%
       left_join(gene_symbol, by='gene_id') %>%
       mutate(inCGC = symbol %in% cgc_symbols) %>%
-      filter(inCGC == T, symbol == 'EP300')
+      filter(inCGC == T)
       #filter(circRNA_start>=1623888 & circRNA_end<=3764177)
   })
   
@@ -261,13 +272,21 @@ shinyServer(function(input, output) {
     selected<-selected_row()
     which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
     #which_gene<-genes(txdb, vals=list(gene_id=as.numeric(selected$gene_id)))
-    if(is.empty(selected$symbol)){
+    region_symbols<-rmNAnullUniq(selected$symbol)
+    if(length(region_symbols)==0){
       which_gene<-which
     }else{
-      which_gene<-genesymbol[selected$symbol]
+      which_gene<-genesymbol[region_symbols]
     }
     
-    message(selected$gene_id, ":", selected$symbol,":",length(which_gene))
+    region_size<-max(end(which_gene))-min(start(which_gene))
+    message(selected$gene_id, ":", selected$symbol,":",length(which_gene),":",region_size)
+    
+    if(region_size>500000){
+      cov_method<-'estimate'
+    }else{
+      cov_method<-'raw'
+    }
     
     norm_junction_reads<-plotReads(norm_bam_circ_region_junction(), which=which)
     norm_reads<-plotReads(norm_bam_circ_region(), which=which)
@@ -275,8 +294,8 @@ shinyServer(function(input, output) {
     tumor_junction_reads<-plotReads(tumor_bam_circ_region_junction(), which=which)
     tumor_reads<-plotReads(tumor_bam_circ_region(), which=which)
     
-    norm_bam_gene_cov <- ggplot() + stat_coverage(norm_bam(), which=which_gene, method='raw')
-    tumor_bam_gene_cov <- ggplot() + stat_coverage(tumor_bam(), which=which_gene, method='raw')
+    norm_bam_gene_cov <- ggplot() + stat_coverage(norm_bam(), which=which_gene, method=cov_method) + ylab(cov_method)
+    tumor_bam_gene_cov <- ggplot() + stat_coverage(tumor_bam(), which=which_gene, method=cov_method) + ylab(cov_method)
     # norm_bam_circ_region_junction_reads_cov <- ggplot() + stat_coverage(granges(norm_bam_circ_region_junction_reads))
     
     #gene_model <- ggbio() + geom_alignment(data=txdb, which = which_gene, stat = "reduce")
