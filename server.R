@@ -7,7 +7,6 @@ library(GenomicAlignments)
 library(GenomicRanges)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(org.Hs.eg.db)
-library(plyr)
 library(dplyr)
 
 source('prepare.R')
@@ -30,7 +29,7 @@ shinyServer(function(input, output) {
     # if(input$byGene){
     #   which<-genes(txdb, vals=list(gene_id=selected$gene_id))
     # }
-    param <- ScanBamParam(which=which, what=what)
+    param <- ScanBamParam(which=which, what=what, tag=c('XA','SA', 'RG'))
     readGAlignments(norm_bam(), param=param)
   })
   
@@ -74,7 +73,7 @@ shinyServer(function(input, output) {
     # if(input$byGene){
     #   which<-genes(txdb, vals=list(gene_id=selected$gene_id))
     # }
-    param <- ScanBamParam(which=which, what=what)
+    param <- ScanBamParam(which=which, what=what, tag=c('XA','SA', 'RG'))
     readGAlignments(tumor_bam(), param=param)
   })
   
@@ -113,7 +112,7 @@ shinyServer(function(input, output) {
         gene_id =  gsub(':.*$','',gene_id),
         length = circRNA_end - circRNA_start,
         log2RatioRatio = log2(Tumor.junction_reads_ratio/Normal.junction_reads_ratio),
-        log2RatioRatio = ifelse(is.infinite(log2RatioRatio), NA, log2RatioRatio),
+        #log2RatioRatio = ifelse(is.infinite(log2RatioRatio), NA, log2RatioRatio),
         inNormal = !is.na(Normal.junction_reads),
         inTumor = !is.na(Tumor.junction_reads),
         inBoth = inNormal & inTumor
