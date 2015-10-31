@@ -107,14 +107,22 @@ rmNAnullUniq<-function(x){
 selectedCircRNAReads<-function(reads, selected, circRNA_ID_qnames){
   reads %>%
     as.data.frame %>%
-    mutate(overlap_start = start <= selected$circRNA_start &
-             end >= selected$circRNA_start,
-           overlap_end = start <= selected$circRNA_end &
-             end >= selected$circRNA_end) %>%
-    left_join(circRNA_ID_qnames, by='qname') %>%
-    mutate(not_support_start = ifelse(overlap_start&is.na(circRNA_ID), T, F),
-           not_support_end = ifelse(overlap_end&is.na(circRNA_ID), T, F),
-           not_support = not_support_start|not_support_end)
+    left_join(circRNA_ID_qnames, by='qname') ->
+  reads
+  
+  if(length(selected$circRNA_ID)==1){
+    reads %>%
+      mutate(overlap_start = start <= selected$circRNA_start &
+               end >= selected$circRNA_start,
+             overlap_end = start <= selected$circRNA_end &
+               end >= selected$circRNA_end,
+             not_support_start = ifelse(overlap_start&is.na(circRNA_ID), T, F),
+             not_support_end = ifelse(overlap_end&is.na(circRNA_ID), T, F),
+             not_support = not_support_start|not_support_end)
+  }else{
+    reads
+  }
+  
 }
 
 countQnames<-function(filter_values, reads){
@@ -202,4 +210,37 @@ plotCoverage<-function(bam, which, cov_method){
                   which=which, 
                   method=cov_method) +
     ylab(cov_method)
+}
+
+parseGoTo<-function(goto){
+  if(length(grep(',$', goto))==0){
+    return(data.frame())
+  }
+  
+  str2loc<-function(string){
+    data.frame(
+      chr=gsub(':.*$', '', string),
+      start=as.numeric(gsub('^.*:|\\|.*$', '', string)),
+      end=as.numeric(gsub('^.*\\|', '', string))
+    )
+  }
+  
+  goto %>%
+    strsplit(split=',') %>%
+    unlist %>%
+    lapply(str2loc) ->
+  goto
+  
+  do.call(rbind, goto) %>%
+    filter(!is.na(start) & !is.na(end))
+}
+
+loadBamReads<-function(bam, target){
+  what <- c("qname", "flag", "mapq")
+  which <- GRanges(target$chr,
+                   IRanges(target$start,
+                           target$end))
+  param <- ScanBamParam(which=which, what=what,
+                        tag=c('XA','SA', 'RG'))
+  readGAlignments(bam, param=param)
 }
