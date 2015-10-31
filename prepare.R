@@ -104,6 +104,75 @@ rmNAnullUniq<-function(x){
   unique(x[!is.na(x) & !is.null(x)])
 }
 
+selectedCircRNAReads<-function(reads, selected, circRNA_ID_qnames){
+  reads %>%
+    as.data.frame %>%
+    mutate(overlap_start = start <= selected$circRNA_start &
+             end >= selected$circRNA_start,
+           overlap_end = start <= selected$circRNA_end &
+             end >= selected$circRNA_end) %>%
+    left_join(circRNA_ID_qnames, by='qname') %>%
+    mutate(not_support_start = ifelse(overlap_start&is.na(circRNA_ID), T, F),
+           not_support_end = ifelse(overlap_end&is.na(circRNA_ID), T, F),
+           not_support = not_support_start|not_support_end)
+}
+
+countQnames<-function(filter_values, reads){
+  column_names<-colnames(reads)
+  idx_ranges<-grepl('\\.\\.\\.', filter_values)
+  idx_bool<-grepl('true|false', filter_values)
+  idx_string<-!(idx_ranges|idx_bool)
+  
+  filter_start<-gsub(' .*$','',filter_values[idx_ranges])
+  filter_end<-gsub('^.* ','',filter_values[idx_ranges])
+  sprintf("%s >= %s & %s <= %s",
+          column_names[idx_ranges],
+          filter_start,
+          column_names[idx_ranges],
+          filter_end) %>%
+    paste(collapse = ' & ') ->
+    range_filters
+  
+  bool_filters<-grepl('true', filter_values[idx_bool])
+  sprintf("%s == %s", 
+          column_names[idx_bool],
+          bool_filters) %>%
+    paste(collapse = ' & ') ->
+    bool_filters
+  
+  if(range_filters == '' && bool_filters != ''){
+    criteria <- sprintf("~ %s", bool_filters)
+  }else if(range_filters != '' && bool_filters == ''){
+    criteria <- sprintf("~ %s", range_filters)
+  }else if(range_filters != '' && bool_filters != ''){
+    criteria <- sprintf("~ %s & %s", range_filters, bool_filters)
+  }else{
+    criteria <- NULL
+  }
+  
+  if(!is.null(criteria)){
+    criteria<-as.formula(criteria)
+    reads <- filter_(reads, criteria)
+  }
+  
+  reads %>%
+    "$"('qname') %>%
+    unique %>%
+    length
+}
+
+highlight_dt<-function(reads){
+  reads %>%
+    datatable(filter = 'top') %>%
+    formatStyle(
+      'mapq',
+      background = styleColorBar(reads$mapq, 'steelblue'),
+      backgroundSize = '100% 90%',
+      backgroundRepeat = 'no-repeat',
+      backgroundPosition = 'center'
+    )
+}
+
 plotReads<-function(reads, which){
   if(length(reads)==0){
     NULL

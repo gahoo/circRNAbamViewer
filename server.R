@@ -54,82 +54,21 @@ shinyServer(function(input, output) {
       reads<-norm_bam_circ_region()
     }
     
-    reads %>%
-      as.data.frame %>%
-      mutate(overlap_start = start <= selected$circRNA_start &
-               end >= selected$circRNA_start,
-             overlap_end = start <= selected$circRNA_end &
-               end >= selected$circRNA_end) %>%
-      left_join(circRNA_ID_qnames(), by='qname') %>%
-      mutate(not_support_start = ifelse(overlap_start&is.na(circRNA_ID), T, F),
-             not_support_end = ifelse(overlap_end&is.na(circRNA_ID), T, F),
-             not_support = not_support_start|not_support_end)
-      
+    selectedCircRNAReads(reads, selected, circRNA_ID_qnames())
   })
   
   output$norm_reads_tb<-DT::renderDataTable({
     norm_reads() %>%
-      datatable(filter = 'top')
+      highlight_dt
+      #datatable(filter = 'top')
   })
   
   output$norm_reads_tb_uniq_qname<-renderText({
     filter_values<-input$norm_reads_tb_search_columns
-    idx_filter<-filter_values!=""
-    column_names<-colnames(norm_reads())[idx_filter]
-    filter_values<-filter_values[idx_filter]
-    idx_ranges<-grepl('\\.\\.\\.', filter_values)
-    idx_bool<-grepl('true|false', filter_values)
-    idx_string<-!(idx_ranges|idx_bool)
-    
-    filter_start<-gsub(' .*$','',filter_values[idx_ranges])
-    filter_end<-gsub('^.* ','',filter_values[idx_ranges])
-    sprintf("%s >= %s & %s <= %s",
-            column_names[idx_ranges],
-            filter_start,
-            column_names[idx_ranges],
-            filter_end) %>%
-      paste(collapse = ' & ') ->
-    range_filters
-    
-    bool_filters<-grepl('true', filter_values[idx_bool])
-    sprintf("%s == %s", 
-            column_names[idx_bool],
-            bool_filters) %>%
-      paste(collapse = ' & ') ->
-    bool_filters
-    
-    str(bool_filters)
-    
+    uniq_qname_cnt<-countQnames(filter_values, norm_reads())
     #str(filter_values)
     #str(input$norm_reads_tb_rows_all)
-    #str(input$norm_reads_tb_rows_current)
-    if(range_filters == '' && bool_filters != ''){
-      criteria <- sprintf("~ %s", bool_filters)
-    }else if(range_filters != '' && bool_filters == ''){
-      criteria <- sprintf("~ %s", range_filters)
-    }else if(range_filters != '' && bool_filters != ''){
-      criteria <- sprintf("~ %s & %s", range_filters, bool_filters)
-    }else{
-      criteria <- NULL
-    }
-    
-    if(is.null(criteria)){
-      norm_reads() %>%
-        "$"('qname') %>%
-        unique %>%
-        length ->
-      uniq_qname_cnt
-    }else{
-      criteria<-as.formula(criteria)
-      norm_reads() %>%
-        filter_(criteria) %>%
-        #filter(not_support == T) %>%
-        "$"('qname') %>%
-        unique %>%
-        length ->
-        uniq_qname_cnt
-    }
-    
+    #str(input$norm_reads_tb_rows_current)    
     paste0("Unique qname counts: ", uniq_qname_cnt)
 
   })
@@ -167,15 +106,28 @@ shinyServer(function(input, output) {
       datatable(filter = 'top')
   })
   
-  output$tumor_reads_tb<-DT::renderDataTable({
+  tumor_reads<-reactive({
+    selected<-ciri_selected_row()
     if(input$tumor_junction_only){
       reads<-tumor_bam_circ_region_junction()
     }else{
       reads<-tumor_bam_circ_region()
     }
-    reads %>%
-      as.data.frame %>%
-      datatable(filter = 'top')
+    
+    selectedCircRNAReads(reads, selected, circRNA_ID_qnames())
+  })
+  
+  output$tumor_reads_tb<-DT::renderDataTable({
+    tumor_reads() %>%
+      highlight_dt
+      #datatable(filter = 'top')
+  })
+  
+  output$tumor_reads_tb_uniq_qname<-renderText({
+    filter_values<-input$tumor_reads_tb_search_columns
+    uniq_qname_cnt<-countQnames(filter_values, tumor_reads())
+    paste0("Unique qname counts: ", uniq_qname_cnt)
+    
   })
   
   norm_tumor_ciri<-reactive({
