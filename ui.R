@@ -56,7 +56,7 @@ shinyUI(fluidPage(
                  class = 'btn-info btn-xs',
                  plotOutput('track', height='800px')
   ),
-  collapsibleDiv(id='normal_junction_reads', collapse = F,
+  collapsibleDiv(id='normal_junction_reads', collapse = T,
                  label = 'Normal junction reads',
                  class = 'btn-info btn-xs',
                  checkboxInput('norm_junction_only', 'junction only', T),
@@ -67,7 +67,8 @@ shinyUI(fluidPage(
                  label = 'Tumor junction reads',
                  class = 'btn-info btn-xs',
                  checkboxInput('tumor_junction_only', 'junction only', T),
-                 DT::dataTableOutput('tumor_reads_tb')
+                 DT::dataTableOutput('tumor_reads_tb'),
+                 textOutput('tumor_reads_tb_uniq_qname')
   ),
   collapsibleDiv(id='gene_reads', collapse = T,
                  label = 'Gene region reads',
