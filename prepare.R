@@ -120,7 +120,13 @@ selectedCircRNAReads<-function(reads, selected, circRNA_ID_qnames){
              not_support_end = ifelse(overlap_end&is.na(circRNA_ID), T, F),
              not_support = not_support_start|not_support_end)
   }else{
-    reads
+    reads %>%
+      mutate(overlap_start = NA,
+             overlap_end = NA,
+             not_support_start = NA,
+             not_support_end = NA,
+             not_support = NA
+             )
   }
   
 }
