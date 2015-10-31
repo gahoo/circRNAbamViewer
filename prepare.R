@@ -227,7 +227,8 @@ parseGoTo<-function(goto){
     data.frame(
       chr=gsub(':.*$', '', string),
       start=as.numeric(gsub('^.*:|\\|.*$', '', string)),
-      end=as.numeric(gsub('^.*\\|', '', string))
+      end=as.numeric(gsub('^.*\\|', '', string)),
+      stringsAsFactors = F
     )
   }
   
