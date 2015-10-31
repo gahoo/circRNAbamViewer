@@ -70,10 +70,10 @@ shinyUI(fluidPage(
                  DT::dataTableOutput('tumor_reads_tb'),
                  textOutput('tumor_reads_tb_uniq_qname')
   ),
-  collapsibleDiv(id='reads_plot', collapse = T,
+  collapsibleDiv(id='reads_plot', collapse = F,
                  label = 'reads viz',
                  class = 'btn-info btn-xs',
-                 plotOutput('reads_track', height='800px')
+                 plotOutput('reads_track')
   ),
   collapsibleDiv(id='go_to_region', collapse = F,
                  label = 'Bam Navigation',
