@@ -70,19 +70,15 @@ shinyUI(fluidPage(
                  DT::dataTableOutput('tumor_reads_tb'),
                  textOutput('tumor_reads_tb_uniq_qname')
   ),
-  collapsibleDiv(id='gene_reads', collapse = T,
-                 label = 'Gene region reads',
-                 class = 'btn-info btn-xs',
-                 DT::dataTableOutput('gene_reads_tb')
-  ),
   collapsibleDiv(id='reads_plot', collapse = T,
                  label = 'reads viz',
                  class = 'btn-info btn-xs',
                  plotOutput('reads_track', height='800px')
   ),
-  collapsibleDiv(id='go_to_region', collapse = T,
+  collapsibleDiv(id='go_to_region', collapse = F,
                  label = 'Bam Navigation',
                  class = 'btn-info btn-xs',
+                 textInput('goto', 'Go to:'),
                  DT::dataTableOutput('nav_reads_tb')
   )
 ))
