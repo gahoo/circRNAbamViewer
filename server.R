@@ -390,41 +390,18 @@ shinyServer(function(input, output, session) {
     all_reads<-nav_reads()
     selected_reads<-nav_reads_selected_row()
     goto <- parseGoTo(input$goto)
-    #which <- GRanges(goto$chr,IRanges(goto$start,goto$end))
+    which <- GRanges(goto$chr,IRanges(goto$start,goto$end))
     
     selected_qname<-unique(mcols(selected_reads)$qname)
     qname_idx <- mcols(all_reads)$qname %in% selected_qname
-    
-    #reads<-autoplot(granges(all_reads[qname_idx]), geom='alignment', aes(fill=strand))
     qname_reads<-granges(all_reads[qname_idx])
     mcols(qname_reads)<-mcols(all_reads[qname_idx])
-    str(qname_reads)
-    reads <- ggbio() + geom_alignment(data=qname_reads) + aes(fill=qname)
+    reads <- ggplot(qname_reads) + geom_alignment(aes_string(fill='qname'))
     
     #transcripts <- ggbio() + geom_alignment(data=txdb, which = which )
     #tracks(transcripts=transcripts,
     #       reads=reads)
     reads
-    
-    
-    
-    loadBamReads<-function(bam, target){
-      what <- c("qname", "flag", "mapq")
-      str(target)
-      which <- GRanges(target$chr,
-                       IRanges(target$start,
-                               target$end))
-      which <- GRanges('chr1', IRanges(114940354, 114940354))
-      param <- ScanBamParam(which=which, what=what,
-                            tag=c('XA','SA', 'RG'))
-      readGAlignments(bam, param=param)
-    }
-    
-    reads<-loadBamReads(bam, goto)
-    new_reads<-granges(reads)
-    mcols(new_reads)<-mcols(reads)
-    ggbio() + geom_alignment(data=new_reads) + aes(fill=qname)
-    
   })
   
 }
