@@ -11,7 +11,7 @@ library(dplyr)
 
 source('prepare.R')
 
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
   
   norm_ciri<-reactive({
     message('load norm_ciri')
@@ -338,6 +338,42 @@ shinyServer(function(input, output) {
     
     title<-with(selected, paste(circRNA_ID, gene_id, symbol, sep=':'))
     tracks(track_list, title=title)
+  })
+  
+  nav_reads<-reactive({    
+    goto <- parseGoTo(input$goto)
+    #str(goto)
+    
+    norm_reads<-loadBamReads(norm_bam(), goto)
+    tumor_reads<-loadBamReads(tumor_bam(), goto)
+    
+    mcols(norm_reads)$type<-"Normal"
+    mcols(tumor_reads)$type<-"Tumor"
+    all_reads<-c(norm_reads, tumor_reads)
+    mcols(all_reads)$type<-as.factor(mcols(all_reads)$type)
+    all_reads
+    
+  })
+  
+  output$nav_reads_tb<-DT::renderDataTable({
+    selected<-ciri_selected_row()
+    circRNA_ID_qnames<-circRNA_ID_qnames()
+    circRNA_ID_qnames$type<-NULL
+    
+    nav_reads() %>%
+    selectedCircRNAReads(selected, circRNA_ID_qnames) %>%
+      as.data.frame %>%
+      datatable(filter = 'top',
+                extensions = 'TableTools', options = list(
+                  dom = 'T<"clear">lfrtip',
+                  tableTools = list(sSwfPath = copySWF()))
+                )
+  })
+  
+  observe({
+    selected<-ciri_selected_row()
+    value<-paste(selected$circRNA_ID, collapse = ',')
+    updateTextInput(session, "goto", value = sprintf("%s,",value))
   })
   
 }
