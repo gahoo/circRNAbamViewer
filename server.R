@@ -201,6 +201,7 @@ shinyServer(function(input, output, session) {
             junction_reads = X.junction_reads,
             junction_ratio = junction_reads_ratio,
             type = type,
+            circRNA_ID = circRNA_ID, 
             element_type = circRNA_type)
          )
   })
@@ -396,12 +397,40 @@ shinyServer(function(input, output, session) {
     qname_idx <- mcols(all_reads)$qname %in% selected_qname
     qname_reads<-granges(all_reads[qname_idx])
     mcols(qname_reads)<-mcols(all_reads[qname_idx])
-    reads <- ggplot(qname_reads) + geom_alignment(aes_string(fill='qname'))
+      
+    reads <- ggplot(qname_reads) + 
+      geom_alignment(aes_string(fill='qname', group='qname', alpha='NULL'))
     
-    #transcripts <- ggbio() + geom_alignment(data=txdb, which = which )
-    #tracks(transcripts=transcripts,
-    #       reads=reads)
-    reads
+    if(input$reads_track_show_arc){
+      break_points <- circ_arc() %>% as.data.frame
+      pos <-c(break_points$start, break_points$end)
+      break_points <- rbind(break_points, break_points)
+      break_points$pos <- pos
+      break_points %>%str
+      
+      reads <- reads +
+        geom_vline(data = break_points, 
+                   xintercept = break_points$pos,
+                   aes(linetype=type,
+                       colour=circRNA_ID))
+      arc<-plotArc(circ_arc())
+    }else{
+      arc = NULL
+    }
+      
+    
+    if(input$reads_track_follow_reads){
+      which <- qname_reads
+    }
+    
+    transcripts <- ggbio() + geom_alignment(data=txdb, which = which )
+    track_list<-list(
+      arc=arc,
+      transcripts=transcripts,
+      reads=reads
+    )
+    track_list<-track_list[!sapply(track_list, is.null)]
+    tracks(track_list)
   })
   
 }
