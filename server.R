@@ -399,7 +399,8 @@ shinyServer(function(input, output, session) {
     mcols(qname_reads)<-mcols(all_reads[qname_idx])
       
     reads <- ggplot(qname_reads) + 
-      geom_alignment(aes_string(fill='qname', group='qname', alpha='NULL'))
+      geom_alignment(aes_string(fill='qname', group='qname', alpha='NULL'))+
+      facet_grid(type ~ .)
     
     if(input$reads_track_show_arc){
       break_points <- circ_arc() %>% as.data.frame
