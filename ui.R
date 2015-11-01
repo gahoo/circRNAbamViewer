@@ -73,9 +73,11 @@ shinyUI(fluidPage(
   collapsibleDiv(id='reads_plot', collapse = F,
                  label = 'reads viz',
                  class = 'btn-info btn-xs',
+                 checkboxInput('reads_track_follow_reads', 'follow reads', T),
+                 checkboxInput('reads_track_show_arc', 'show arc', F),
                  plotOutput('reads_track')
   ),
-  collapsibleDiv(id='go_to_region', collapse = F,
+  collapsibleDiv(id='go_to_region', collapse = T,
                  label = 'Bam Navigation',
                  class = 'btn-info btn-xs',
                  textInput('goto', 'Go to:'),
