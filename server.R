@@ -142,7 +142,7 @@ shinyServer(function(input, output, session) {
         gene_id =  gsub('^n/a$','',gene_id),
         length = circRNA_end - circRNA_start,
         log2RatioRatio = log2(Tumor.junction_reads_ratio/Normal.junction_reads_ratio),
-        log2RatioRatio = ifelse(is.infinite(log2RatioRatio), NA, log2RatioRatio),
+        #log2RatioRatio = ifelse(is.infinite(log2RatioRatio), NA, log2RatioRatio),
         inNormal = !is.na(Normal.junction_reads),
         inTumor = !is.na(Tumor.junction_reads),
         inBoth = inNormal & inTumor
@@ -362,7 +362,7 @@ shinyServer(function(input, output, session) {
     circRNA_ID_qnames$type<-NULL
     
     nav_reads() %>%
-    selectedCircRNAReads(selected, circRNA_ID_qnames) %>%
+    selectedCircRNAReads(selected, circRNA_ID_qnames) %>%      
       as.data.frame %>%
       datatable(filter = 'top',
                 extensions = 'TableTools', options = list(
@@ -398,25 +398,42 @@ shinyServer(function(input, output, session) {
     qname_reads<-granges(all_reads[qname_idx])
     mcols(qname_reads)<-mcols(all_reads[qname_idx])
       
+    
+    if(input$reads_track_facet){
+      facet <- facet_grid(type ~ .)
+    }else{
+      facet <- NULL
+    }
+    
+    mappings<-list(
+      fill=ifelse(input$reads_track_fill=="NULL", '0', input$reads_track_fill),
+      group=ifelse(input$reads_track_group=="NULL", '0', input$reads_track_group),
+      alpha=ifelse(input$reads_track_alpha=="NULL", '0.3', input$reads_track_alpha)
+      )
+    
+    #str(mappings)
+    
     reads <- ggplot(qname_reads) + 
-      geom_alignment(aes_string(fill='qname', group='qname', alpha='NULL'))+
-      facet_grid(type ~ .)
+      geom_alignment(data = qname_reads, 
+                     aes_string(fill=mappings$fill,
+                                group=mappings$group,
+                                alpha=mappings$alpha),
+                     facet=facet)
     
     if(input$reads_track_show_arc){
-      break_points <- circ_arc() %>% as.data.frame
-      pos <-c(break_points$start, break_points$end)
-      break_points <- rbind(break_points, break_points)
-      break_points$pos <- pos
-      break_points %>%str
-      
-      reads <- reads +
-        geom_vline(data = break_points, 
-                   xintercept = break_points$pos,
-                   aes(linetype=type,
-                       colour=circRNA_ID))
       arc<-plotArc(circ_arc())
     }else{
       arc = NULL
+    }
+    
+    
+    break_points <- circ_arc() %>% as.data.frame
+    if(input$reads_track_show_break_start){
+      reads <- reads + geom_break(break_points, 'start')
+    }
+    
+    if(input$reads_track_show_break_end){
+      reads <- reads + geom_break(break_points, 'end')
     }
       
     
@@ -424,7 +441,12 @@ shinyServer(function(input, output, session) {
       which <- qname_reads
     }
     
-    transcripts <- ggbio() + geom_alignment(data=txdb, which = which )
+    if(input$reads_track_show_transcript){
+      transcripts <- ggbio() + geom_alignment(data=txdb, which = which )
+    }else{
+      transcripts <- NULL
+    }
+    
     track_list<-list(
       arc=arc,
       transcripts=transcripts,
@@ -432,6 +454,22 @@ shinyServer(function(input, output, session) {
     )
     track_list<-track_list[!sapply(track_list, is.null)]
     tracks(track_list)
+  })
+  
+  output$reads_track_ctrls<-renderUI({
+    nav_reads() %>%
+      as.data.frame %>%
+      colnames %>%
+      c('NULL') ->
+    col_names
+    list(
+      selectInput('reads_track_fill', 'fill',
+                  choices = col_names, selected = 'qname'),
+      selectInput('reads_track_group', 'group',
+                  choices = col_names, selected = 'qname'),
+      selectInput('reads_track_alpha', 'alpha',
+                  choices = col_names, selected = 'NULL')
+      )
   })
   
 }
