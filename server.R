@@ -70,7 +70,7 @@ shinyServer(function(input, output, session) {
     uniq_qname_cnt<-countQnames(filter_values, norm_reads())
     #str(filter_values)
     #str(input$norm_reads_tb_rows_all)
-    #str(input$norm_reads_tb_rows_current)    
+    #str(input$norm_reads_tb_rows_current)
     paste0("Unique qname counts: ", uniq_qname_cnt)
 
   })
@@ -398,16 +398,17 @@ shinyServer(function(input, output, session) {
     which <- GRanges(goto$chr,IRanges(goto$start,goto$end))
     
     selected_qname<-unique(mcols(selected_reads)$qname)
-    qname_idx <- mcols(all_reads)$qname %in% selected_qname
+    if(input$reads_track_cur_page_reads){
+      qname_idx <- as.numeric(input$nav_reads_tb_rows_all)
+      if(input$reads_track_follow_reads){
+        qname_idx <- mcols(all_reads)$qname %in% unique(mcols(all_reads[qname_idx])$qname)
+      }
+    }else{
+      qname_idx <- mcols(all_reads)$qname %in% selected_qname
+    }
+    
     qname_reads<-granges(all_reads[qname_idx])
     mcols(qname_reads)<-mcols(all_reads[qname_idx])
-      
-    
-    if(input$reads_track_facet){
-      facet <- facet_grid(type ~ .)
-    }else{
-      facet <- NULL
-    }
     
     mappings<-list(
       fill=ifelse(input$reads_track_fill=="NULL", '0', input$reads_track_fill),
@@ -421,8 +422,12 @@ shinyServer(function(input, output, session) {
       geom_alignment(data = qname_reads, 
                      aes_string(fill=mappings$fill,
                                 group=mappings$group,
-                                alpha=mappings$alpha),
-                     facet=facet)
+                                alpha=mappings$alpha)
+                     )
+    
+    if(input$reads_track_facet){
+      reads <- reads + facet_grid(type ~ .)
+    }
     
     if(input$reads_track_show_arc){
       arc<-plotArc(circ_arc())
