@@ -53,12 +53,14 @@ shinyServer(function(input, output, session) {
     }else{
       reads<-norm_bam_circ_region()
     }
+    reads<-norm_bam_circ_region()
     
     selectedCircRNAReads(reads, selected, circRNA_ID_qnames())
   })
   
   output$norm_reads_tb<-DT::renderDataTable({
     norm_reads() %>%
+      as.data.frame() %>%
       highlight_dt
       #datatable(filter = 'top')
   })
@@ -119,6 +121,7 @@ shinyServer(function(input, output, session) {
   
   output$tumor_reads_tb<-DT::renderDataTable({
     tumor_reads() %>%
+      as.data.frame %>%
       highlight_dt
       #datatable(filter = 'top')
   })
@@ -341,7 +344,7 @@ shinyServer(function(input, output, session) {
     tracks(track_list, title=title)
   })
   
-  nav_reads<-reactive({    
+  nav_reads<-reactive({
     goto <- parseGoTo(input$goto)
     #str(goto)
     
@@ -352,17 +355,18 @@ shinyServer(function(input, output, session) {
     mcols(tumor_reads)$type<-"Tumor"
     all_reads<-c(norm_reads, tumor_reads)
     mcols(all_reads)$type<-as.factor(mcols(all_reads)$type)
-    all_reads
     
-  })
-  
-  output$nav_reads_tb<-DT::renderDataTable({
     selected<-ciri_selected_row()
     circRNA_ID_qnames<-circRNA_ID_qnames()
     circRNA_ID_qnames$type<-NULL
     
+    all_reads %>%
+      selectedCircRNAReads(selected, circRNA_ID_qnames)
+    
+  })
+  
+  output$nav_reads_tb<-DT::renderDataTable({
     nav_reads() %>%
-    selectedCircRNAReads(selected, circRNA_ID_qnames) %>%      
       as.data.frame %>%
       datatable(filter = 'top',
                 extensions = 'TableTools', options = list(
