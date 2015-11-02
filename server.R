@@ -26,9 +26,6 @@ shinyServer(function(input, output, session) {
     selected<-ciri_selected_row()
     what <- c("qname", "flag", "mapq")
     which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
-    # if(input$byGene){
-    #   which<-genes(txdb, vals=list(gene_id=selected$gene_id))
-    # }
     param <- ScanBamParam(which=which, what=what, tag=c('XA','SA', 'RG'))
     readGAlignments(norm_bam(), param=param)
   })
@@ -88,9 +85,6 @@ shinyServer(function(input, output, session) {
     selected<-ciri_selected_row()
     what <- c("qname", "flag", "mapq")
     which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
-    # if(input$byGene){
-    #   which<-genes(txdb, vals=list(gene_id=selected$gene_id))
-    # }
     param <- ScanBamParam(which=which, what=what, tag=c('XA','SA', 'RG'))
     readGAlignments(tumor_bam(), param=param)
   })
@@ -215,7 +209,13 @@ shinyServer(function(input, output, session) {
     if(is.null(row_id)){
       row_id<-1
     }
-    norm_tumor_ciri()[row_id,] %>% as.list
+    
+    selected <- norm_tumor_ciri()[row_id,] %>% as.list
+    if(input$byGene){
+      row_id<-which(norm_tumor_ciri()$symbol %in% selected$symbol)
+      selected <- norm_tumor_ciri()[row_id,] %>% as.list
+    }
+    selected
   })
   
   output$helper<-renderText({
