@@ -106,10 +106,11 @@ rmNAnullUniq<-function(x){
 }
 
 selectedCircRNAReads<-function(reads, selected, circRNA_ID_qnames){
-  is.overlap<-function(pos, check_sites){
-    sites_idx<-lapply(check_sites, function(pos, check_site){
-      pos <= check_site & pos => check_site
-    })
+  is.overlap<-function(check_sites, start, end){
+    is.site.overlap<-function(check_site){
+      start <= check_site & end >= check_site
+    }  
+    sites_idx<-lapply(check_sites, is.site.overlap)
     Reduce("|", sites_idx)
   }
   
