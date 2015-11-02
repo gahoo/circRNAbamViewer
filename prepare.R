@@ -1,3 +1,4 @@
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 # Multiple plot function
 #
 # ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
@@ -105,6 +106,13 @@ rmNAnullUniq<-function(x){
 }
 
 selectedCircRNAReads<-function(reads, selected, circRNA_ID_qnames){
+  is.overlap<-function(pos, check_sites){
+    sites_idx<-lapply(check_sites, function(pos, check_site){
+      pos <= check_site & pos => check_site
+    })
+    Reduce("|", sites_idx)
+  }
+  
   reads %>%
     as.data.frame %>%
     left_join(circRNA_ID_qnames, by='qname') ->
@@ -250,4 +258,12 @@ loadBamReads<-function(bam, target){
   param <- ScanBamParam(which=which, what=what,
                         tag=c('XA','SA', 'RG'))
   readGAlignments(bam, param=param)
+}
+
+geom_break<-function(break_points, site='start'){
+  geom_vline(data = break_points, 
+             xintercept = break_points[[site]],
+             aes(linetype=type,
+                 colour=circRNA_ID)
+             )
 }
