@@ -24,10 +24,11 @@ shinyServer(function(input, output, session) {
   
   norm_bam_circ_region<-reactive({
     selected<-ciri_selected_row()
-    what <- c("qname", "flag", "mapq")
-    which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
-    param <- ScanBamParam(which=which, what=what, tag=c('XA','SA', 'RG'))
-    readGAlignments(norm_bam(), param=param)
+    target<-list(
+      chr=selected$chr,
+      start=selected$circRNA_start,
+      end=selected$circRNA_end)
+    loadBamReads(norm_bam(), target)
   })
   
   norm_bam_circ_region_junction<-reactive({
@@ -50,7 +51,6 @@ shinyServer(function(input, output, session) {
     }else{
       reads<-norm_bam_circ_region()
     }
-    reads<-norm_bam_circ_region()
     
     selectedCircRNAReads(reads, selected, circRNA_ID_qnames())
   })
@@ -83,10 +83,11 @@ shinyServer(function(input, output, session) {
   
   tumor_bam_circ_region<-reactive({
     selected<-ciri_selected_row()
-    what <- c("qname", "flag", "mapq")
-    which <- GRanges(selected$chr, IRanges(selected$circRNA_start, selected$circRNA_end))
-    param <- ScanBamParam(which=which, what=what, tag=c('XA','SA', 'RG'))
-    readGAlignments(tumor_bam(), param=param)
+    target<-list(
+      chr=selected$chr,
+      start=selected$circRNA_start,
+      end=selected$circRNA_end)
+    loadBamReads(tumor_bam(), target)
   })
   
   tumor_bam_circ_region_junction<-reactive({
