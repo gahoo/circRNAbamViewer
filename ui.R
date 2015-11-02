@@ -54,7 +54,7 @@ shinyUI(fluidPage(
   collapsibleDiv(id='track', collapse = T,
                  label = 'plot',
                  class = 'btn-info btn-xs',
-                 checkboxInput('byGene', 'By Gene', T),
+                 checkboxInput('byGene', 'By Gene', F),
                  plotOutput('track', height='800px')
   ),
   collapsibleDiv(id='normal_junction_reads', collapse = T,
