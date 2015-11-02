@@ -54,6 +54,7 @@ shinyUI(fluidPage(
   collapsibleDiv(id='track', collapse = T,
                  label = 'plot',
                  class = 'btn-info btn-xs',
+                 checkboxInput('byGene', 'By Gene', T),
                  plotOutput('track', height='800px')
   ),
   collapsibleDiv(id='normal_junction_reads', collapse = T,
@@ -83,6 +84,7 @@ shinyUI(fluidPage(
                    checkboxInput('reads_track_show_break_start', 'show break start', F),
                    checkboxInput('reads_track_show_break_end', 'show break end', F),
                    checkboxInput('reads_track_facet', 'facet by sample', F),
+                   checkboxInput('reads_track_cur_page_reads', 'plot current page reads', F),
                    uiOutput('reads_track_ctrls')
                    ),
                  plotOutput('reads_track')
