@@ -119,10 +119,15 @@ selectedCircRNAReads<-function(reads, selected, circRNA_ID_qnames){
     left_join(circRNA_ID_qnames, by='qname') ->
   reads
   
+  is.overlap(selected$circRNA_end, reads$start, reads$end) %>%
+    sum %>%
+    str
+  
   if(length(selected$circRNA_ID)==1){
     reads %>%
       mutate(overlap_start = start <= selected$circRNA_start &
                end >= selected$circRNA_start,
+             overlap_start2 = is.overlap(selected$circRNA_start, start, end),
              overlap_end = start <= selected$circRNA_end &
                end >= selected$circRNA_end,
              not_support_start = ifelse(overlap_start&is.na(circRNA_ID), T, F),

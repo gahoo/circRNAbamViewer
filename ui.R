@@ -70,11 +70,11 @@ shinyUI(fluidPage(
                  DT::dataTableOutput('tumor_reads_tb'),
                  textOutput('tumor_reads_tb_uniq_qname')
   ),
-  collapsibleDiv(id='reads_plot', collapse = F,
+  collapsibleDiv(id='reads_plot', collapse = T,
                  label = 'reads viz',
                  class = 'btn-info btn-xs',
                  collapsibleDiv(
-                   id='reads_plot_settings', collapse = T,
+                   id='reads_plot_settings', collapse = F,
                    label = 'settings',
                    class = 'btn-info btn-xs  pull-right',
                    checkboxInput('reads_track_follow_reads', 'follow reads', T),
