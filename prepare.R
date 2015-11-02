@@ -114,35 +114,20 @@ selectedCircRNAReads<-function(reads, selected, circRNA_ID_qnames){
     Reduce("|", sites_idx)
   }
   
-  reads %>%
+  mcols(reads) %>%
     as.data.frame %>%
     left_join(circRNA_ID_qnames, by='qname') ->
+  reads_meta
+  
+  reads_meta %>%
+    mutate(overlap_start = is.overlap(selected$circRNA_start, start(reads), end(reads)),
+           overlap_end = is.overlap(selected$circRNA_end, start(reads), end(reads)),
+           not_support_start = ifelse(overlap_start&is.na(circRNA_ID), T, F),
+           not_support_end = ifelse(overlap_end&is.na(circRNA_ID), T, F),
+           not_support = not_support_start|not_support_end
+      ) ->
+    values(reads)
   reads
-  
-  is.overlap(selected$circRNA_end, reads$start, reads$end) %>%
-    sum %>%
-    str
-  
-  if(length(selected$circRNA_ID)==1){
-    reads %>%
-      mutate(overlap_start = start <= selected$circRNA_start &
-               end >= selected$circRNA_start,
-             overlap_start2 = is.overlap(selected$circRNA_start, start, end),
-             overlap_end = start <= selected$circRNA_end &
-               end >= selected$circRNA_end,
-             not_support_start = ifelse(overlap_start&is.na(circRNA_ID), T, F),
-             not_support_end = ifelse(overlap_end&is.na(circRNA_ID), T, F),
-             not_support = not_support_start|not_support_end)
-  }else{
-    reads %>%
-      mutate(overlap_start = NA,
-             overlap_end = NA,
-             not_support_start = NA,
-             not_support_end = NA,
-             not_support = NA
-             )
-  }
-  
 }
 
 countQnames<-function(filter_values, reads){
@@ -184,6 +169,7 @@ countQnames<-function(filter_values, reads){
   }
   
   reads %>%
+    as.data.frame %>%
     "$"('qname') %>%
     unique %>%
     length
