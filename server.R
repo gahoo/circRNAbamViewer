@@ -476,7 +476,7 @@ shinyServer(function(input, output, session) {
       repeats <- ggbio() + 
         geom_alignment(data = repeats,
                        aes(group = name, fill = strand),
-                       alpha = 0.2,
+                       alpha = 0.7,
                        which = which,
                        names.expr = "name",
                        label = T)
@@ -485,7 +485,7 @@ shinyServer(function(input, output, session) {
     }
     
     if(input$reads_track_show_transcript){
-      transcripts <- ggbio() + geom_alignment(data=txdb, which = which )
+      transcripts <- ggbio() + geom_alignment(data=txdb, which = which, name.expr="gene_id::tx_name")
     }else{
       transcripts <- NULL
     }
