@@ -81,6 +81,11 @@ shinyUI(fluidPage(
                    checkboxInput('reads_track_follow_reads', 'follow reads', T),
                    checkboxInput('reads_track_show_arc', 'show arc', F),
                    checkboxInput('reads_track_show_transcript', 'show transcript', F),
+                   checkboxInput('reads_track_show_repeats', 'show repeats', F),
+                   conditionalPanel('input.reads_track_show_repeats == true',
+                                    textInput('reads_track_extend_bp',
+                                              'Extend:', value=1000)
+                                    ),
                    checkboxInput('reads_track_show_break_start', 'show break start', F),
                    checkboxInput('reads_track_show_break_end', 'show break end', F),
                    checkboxInput('reads_track_facet', 'facet by sample', F),

@@ -451,6 +451,32 @@ shinyServer(function(input, output, session) {
       which <- qname_reads
     }
     
+    if(input$reads_track_show_repeats){
+      #which<-reduce(flank(which, 500, both=T))      
+      which <- GRanges(unique(goto$chr),IRanges(min(goto$start),max(goto$end)))
+      extend_bp <- as.numeric(input$reads_track_extend_bp)
+  
+      left_which <- flank(which, extend_bp, start=T)
+      right_which <- flank(which, extend_bp, start=F)
+      c(left_which,
+        #which, 
+        right_which) %>%
+        reduce ->
+      which
+      
+      #which %>% width %>% str
+      repeats <- subsetByOverlaps(rmsk, which, ignore.strand=T)
+      repeats <- ggbio() + 
+        geom_alignment(data = repeats,
+                       aes(group = name, fill = score),
+                       alpha = 0.2,
+                       which = which,
+                       names.expr = "name",
+                       label = T)
+    }else{
+      repeats <- NULL
+    }
+    
     if(input$reads_track_show_transcript){
       transcripts <- ggbio() + geom_alignment(data=txdb, which = which )
     }else{
@@ -460,6 +486,7 @@ shinyServer(function(input, output, session) {
     track_list<-list(
       arc=arc,
       transcripts=transcripts,
+      repeats=repeats,
       reads=reads
     )
     track_list<-track_list[!sapply(track_list, is.null)]

@@ -45,6 +45,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
+load('rmsk_0.0.1.RData')
 txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
 gene_symbol<-as.data.frame(org.Hs.egSYMBOL)
 data(genesymbol, package = "biovizBase")
