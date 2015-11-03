@@ -83,6 +83,7 @@ shinyUI(fluidPage(
                    checkboxInput('reads_track_show_transcript', 'show transcript', F),
                    checkboxInput('reads_track_show_repeats', 'show repeats', F),
                    conditionalPanel('input.reads_track_show_repeats == true',
+                                    checkboxInput('reads_track_hide_uniq_repeats', 'hide unique and middle', F),
                                     textInput('reads_track_extend_bp',
                                               'Extend:', value=1000)
                                     ),

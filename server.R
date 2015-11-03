@@ -452,23 +452,30 @@ shinyServer(function(input, output, session) {
     }
     
     if(input$reads_track_show_repeats){
-      #which<-reduce(flank(which, 500, both=T))      
       which <- GRanges(unique(goto$chr),IRanges(min(goto$start),max(goto$end)))
       extend_bp <- as.numeric(input$reads_track_extend_bp)
   
       left_which <- flank(which, extend_bp, start=T)
       right_which <- flank(which, extend_bp, start=F)
+      middle_which <- which
       c(left_which,
-        #which, 
+        which, 
         right_which) %>%
         reduce ->
       which
       
-      #which %>% width %>% str
+      which %>% width %>% str
       repeats <- subsetByOverlaps(rmsk, which, ignore.strand=T)
+      if(input$reads_track_hide_uniq_repeats){
+        repeats <- subsetByOverlaps(repeats, c(left_which, right_which), ignore.strand=T)
+        duplicated_names<-repeats$name[duplicated(repeats$name)]
+        dup_idx <- repeats$name %in% duplicated_names
+        repeats<-repeats[dup_idx]
+      }
+      
       repeats <- ggbio() + 
         geom_alignment(data = repeats,
-                       aes(group = name, fill = score),
+                       aes(group = name, fill = strand),
                        alpha = 0.2,
                        which = which,
                        names.expr = "name",
