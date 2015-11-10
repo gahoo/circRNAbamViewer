@@ -1,8 +1,8 @@
+library(org.Hs.eg.db)
 library(plyr)
 library(dplyr)
 library(tidyr)
 library(magrittr)
-library(org.Hs.eg.db)
 
 loadCGCsymbols<-function(){
   cgc<-read.delim('cancer_gene_census_2012_0315', sep='\t', as.is=T)
@@ -18,7 +18,6 @@ loadCGCsymbols<-function(){
 gene_symbol<-as.data.frame(org.Hs.egSYMBOL)
 cgc_symbols<-loadCGCsymbols()
 
-dir('CIRI','*.CIRI')
 samples<-c('S33N', 'S33T', 'S33NT')
 
 
